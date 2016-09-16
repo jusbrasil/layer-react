@@ -72,6 +72,7 @@ export default (getInitialQueryParams = {}, getQueries) =>
 
         this.client = props.client || context.client;
         this.queries = {};
+        this.callbacks = {};
 
         const queryParams = (typeof getInitialQueryParams === 'function')
           ? getInitialQueryParams(props)
@@ -133,9 +134,10 @@ export default (getInitialQueryParams = {}, getQueries) =>
         Object.keys(this.queries).forEach((key) => {
           if (!queryBuilders[key]) {
             const query = this.queries[key];
-            query.off('change', this._onQueryChange, this);
+            query.off('change', this.callbacks[query.internalId]);
 
             delete this.queries[key];
+            delete this.callbacks[query.internalId];
           }
         });
 
@@ -150,10 +152,11 @@ export default (getInitialQueryParams = {}, getQueries) =>
             const newQuery = this.client.createQuery(builder);
 
             this.queries[key] = newQuery;
-
-            newQuery.on('change', () => {
+            this.callbacks[newQuery.internalId] = () => {
               this._onQueryChange(key, newQuery.data);
-            });
+            };
+
+            newQuery.on('change', this.callbacks[newQuery.internalId]);
           }
         });
 
@@ -213,7 +216,7 @@ export default (getInitialQueryParams = {}, getQueries) =>
         // When the component unmounts, unsubscribe from all event listeners.
         Object.keys(this.queries).forEach((key) => {
           const query = this.queries[key];
-          query.off('change', this._onQueryChange, this);
+          query.off('change', this.callbacks[query.internalId]);
           this.client.off('ready', this._onClientReady, this);
         });
       }
