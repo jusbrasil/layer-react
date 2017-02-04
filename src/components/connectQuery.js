@@ -203,8 +203,9 @@ export default (getInitialQueryParams = {}, getQueries) =>
         const passedProps = {
           ...queryResults,
           query: {
-            queryParams,
+            ...this.queries,
             setQueryParams: this.setQueryParams,
+            queryParams,
             queryIds,
           },
         };
